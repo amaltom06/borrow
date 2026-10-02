@@ -1,0 +1,30 @@
+import 'dotenv/config';
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import morgan from 'morgan';
+import { requireAuth } from './middleware/auth.js';
+import auth from './routes/auth.js';
+import communities from './routes/communities.js';
+import items from './routes/items.js';
+import requests from './routes/requests.js';
+import borrows from './routes/borrows.js';
+import users from './routes/users.js';
+import notifications from './routes/notifications.js';
+
+const app = express();
+app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+app.use(express.json({ limit: '1mb' }));
+app.use(morgan('dev'));
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
+app.use('/api/auth', auth);
+app.use('/api/communities', requireAuth, communities);
+app.use('/api/items', requireAuth, items);
+app.use('/api/requests', requireAuth, requests);
+app.use('/api/borrows', requireAuth, borrows);
+app.use('/api/users', requireAuth, users);
+app.use('/api/notifications', requireAuth, notifications);
+app.use((err, _req, res, _next) => { console.error(err); res.status(err.name === 'CastError' ? 400 : 500).json({ message: err.message || 'Something went wrong' }); });
+
+const port = process.env.PORT || 5000;
+mongoose.connect(process.env.MONGODB_URI).then(() => app.listen(port, () => console.log(`Borrow API listening on ${port}`))).catch((error) => { console.error('MongoDB connection failed:', error.message); process.exit(1); });
